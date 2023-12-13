@@ -3,17 +3,17 @@ import { NextResponse, NextRequest } from 'next/server'
 
 export async function GET(req: NextRequest, { params }: any) {
   const id = params.id
-  if (!id || isNaN(parseInt(id))) {
-    return NextResponse.json(
-      {
-        body: 'Invalid or missing id parameter'
-      },
-      {
-        status: 400
-      }
-    )
-  }
-  const { count, data, error } = await supabase.from('notification').select('*', { count: 'exact' }).eq('id', id)
+  // if (!id) {
+  //   return NextResponse.json(
+  //     {
+  //       body: 'Invalid or missing id parameter'
+  //     },
+  //     {
+  //       status: 400
+  //     }
+  //   )
+  // }
+  const { count, data, error } = await supabase.from('notification').select('*', { count: 'exact' }).eq('user_id', id)
   if (error) {
     return NextResponse.json(
       {

@@ -12,6 +12,10 @@ export async function GET(req: NextRequest) {
       const { data, error } = await supabase.from('device').select('*').range(offset, limit)
       if (error) throw error
       return NextResponse.json({ body: data }, { status: 200 })
+    } else {
+      const { data, error } = await supabase.from('device').select('*')
+      if (error) throw error
+      return NextResponse.json({ body: data }, { status: 200 })
     }
   } catch (err) {
     return NextResponse.json({ body: err }, { status: 500 })

@@ -9,7 +9,11 @@ export async function GET(req: NextRequest) {
     const offset = obj['offset'] ? parseInt(obj['offset']) : 0 // Offset default = 0
     const limit = obj['limit'] ? parseInt(obj['limit']) : 10 // Limit default = 10
     if (obj['offset'] && obj['limit']) {
-      const { data, error } = await supabase.from('auth.users').select('*', { count: 'exact' })
+      const { data, error } = await supabase.from('users').select('*').range(offset, limit)
+      if (error) throw error
+      return NextResponse.json({ body: data }, { status: 200 })
+    } else {
+      const { data, error } = await supabase.from('users').select('*')
       if (error) throw error
       return NextResponse.json({ body: data }, { status: 200 })
     }
@@ -28,4 +32,10 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ message: 'Created' }, { status: 200 })
+}
+
+export async function getSession() {
+  const { data, error } = await supabase.auth.getSession()
+  if (error) return NextResponse.json({ body: error }, { status: 500 })
+  else return NextResponse.json({ body: data }, { status: 200 })
 }
