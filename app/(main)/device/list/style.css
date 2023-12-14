@@ -1,0 +1,13 @@
+/* CustomerStyles.css */
+
+.customer-badge.status-working {
+  color: blue;
+}
+
+.customer-badge.status-active {
+  color: green;
+}
+
+.customer-badge.status-inactive {
+  color: red;
+}
