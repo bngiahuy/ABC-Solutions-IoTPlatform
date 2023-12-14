@@ -6,11 +6,45 @@ import { Column } from 'primereact/column'
 import { DataTable } from 'primereact/datatable'
 import { Menu } from 'primereact/menu'
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { ProductService } from '@/demo/service/ProductService'
+import { ProductService } from '../../demo/service/ProductService'
 import { LayoutContext } from '../../layout/context/layoutcontext'
 import Link from 'next/link'
 import { Demo } from '../../types/types'
 import { ChartData, ChartOptions } from 'chart.js'
+import WaterDropOutlinedIcon from '@mui/icons-material/WaterDropOutlined'
+import DeviceThermostatOutlinedIcon from '@mui/icons-material/DeviceThermostatOutlined'
+import supabase from 'utils/supabase-init'
+import { useRouter } from 'next/navigation'
+// import { GET } from '../api/notification/route'
+
+export const useDate = () => {
+  const locale = 'en'
+  const [today, setDate] = React.useState(new Date()) // Save the current date to be able to trigger an update
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Creates an interval which will update the current data every minute
+      // This will trigger a rerender every component that uses the useDate hook.
+      setDate(new Date())
+    }, 60 * 1000)
+    return () => {
+      clearInterval(timer) // Return a funtion to clear the timer so that it will stop being called on unmount
+    }
+  }, [])
+
+  const day = today.toLocaleDateString(locale, { weekday: 'long' })
+  const date = `${day}, ${today.getDate()} ${today.toLocaleDateString(locale, { month: 'long' })}\n\n`
+
+  // const hour = today.getHours()
+  // const wish = `Good ${(hour < 12 && 'Morning') || (hour < 17 && 'Afternoon') || 'Evening'}, `
+
+  const time = today.toLocaleTimeString(locale, { hour: 'numeric', hour12: true, minute: 'numeric' })
+
+  return {
+    date,
+    time
+  }
+}
 
 const lineData: ChartData = {
   labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
@@ -38,8 +72,51 @@ const Dashboard = () => {
   const [products, setProducts] = useState<Demo.Product[]>([])
   const menu1 = useRef<Menu>(null)
   const menu2 = useRef<Menu>(null)
+  const [notifications, setNotifications] = useState<any[]>([])
   const [lineOptions, setLineOptions] = useState<ChartOptions>({})
   const { layoutConfig } = useContext(LayoutContext)
+  const { date, time } = useDate()
+  const [sessionChecked, setSessionChecked] = useState<boolean>(false)
+
+  const router = useRouter()
+  useEffect(() => {
+    const fetchData = async () => {
+      const checkUserSession = async () => {
+        // Check if the user is logged in
+
+        const {
+          data: { user }
+        } = await supabase.auth.getUser()
+
+        if (!user) {
+          // User is not logged in, redirect to login page
+          router.push('/auth/login')
+          return
+        }
+
+        // Check if the session is expired
+        const { error } = await supabase.auth.getSession()
+
+        if (error) {
+          // Session expired, redirect to login page
+          router.push('/auth/login')
+        }
+        // Set session checked to true
+        setSessionChecked(true)
+      }
+
+      await checkUserSession()
+      // Additional asynchronous logic here
+      const productsData = await ProductService.getProductsSmall()
+      setProducts(productsData)
+    }
+    fetchData()
+  }, [router])
+  // useEffect(() => {
+  //   // Set the sessionChecked flag after the initial session check
+  //   setSessionChecked(true)
+  // }, [])
+  // Render nothing until the session check is complete
 
   const applyLightTheme = () => {
     const lineOptions: ChartOptions = {
@@ -105,9 +182,9 @@ const Dashboard = () => {
     setLineOptions(lineOptions)
   }
 
-  useEffect(() => {
-    ProductService.getProductsSmall().then(data => setProducts(data))
-  }, [])
+  // useEffect(() => {
+  //   ProductService.getProductsSmall().then(data => setProducts(data))
+  // }, [])
 
   useEffect(() => {
     if (layoutConfig.colorScheme === 'light') {
@@ -115,8 +192,10 @@ const Dashboard = () => {
     } else {
       applyDarkTheme()
     }
-  }, [layoutConfig.colorScheme])
-
+  }, [layoutConfig.colorScheme, sessionChecked])
+  if (!sessionChecked) {
+    return null
+  }
   const formatCurrency = (value: number) => {
     return value?.toLocaleString('en-US', {
       style: 'currency',
@@ -130,11 +209,12 @@ const Dashboard = () => {
         <div className='card mb-0'>
           <div className='flex justify-content-between mb-3'>
             <div>
-              <span className='block text-500 font-medium mb-3'>Orders</span>
+              <span className='block text-500 font-medium mb-3'>Temperature</span>
               <div className='text-900 font-medium text-xl'>152</div>
             </div>
             <div className='flex align-items-center justify-content-center bg-blue-100 border-round' style={{ width: '2.5rem', height: '2.5rem' }}>
-              <i className='pi pi-shopping-cart text-blue-500 text-xl' />
+              {/* <i className='pi pi-sun text-blue-500 text-xl' /> */}
+              <DeviceThermostatOutlinedIcon className='pi text-blue-500 text-xl' />
             </div>
           </div>
           <span className='text-green-500 font-medium'>24 new </span>
@@ -145,11 +225,12 @@ const Dashboard = () => {
         <div className='card mb-0'>
           <div className='flex justify-content-between mb-3'>
             <div>
-              <span className='block text-500 font-medium mb-3'>Revenue</span>
+              <span className='block text-500 font-medium mb-3'>Humidity</span>
               <div className='text-900 font-medium text-xl'>$2.100</div>
             </div>
             <div className='flex align-items-center justify-content-center bg-orange-100 border-round' style={{ width: '2.5rem', height: '2.5rem' }}>
-              <i className='pi pi-map-marker text-orange-500 text-xl' />
+              {/* <i className='pi pi-cloud text-orange-500 text-xl' /> */}
+              <WaterDropOutlinedIcon className='pi text-orange-500 text-xl' />
             </div>
           </div>
           <span className='text-green-500 font-medium'>%52+ </span>
@@ -160,7 +241,7 @@ const Dashboard = () => {
         <div className='card mb-0'>
           <div className='flex justify-content-between mb-3'>
             <div>
-              <span className='block text-500 font-medium mb-3'>Customers</span>
+              <span className='block text-500 font-medium mb-3'>Light</span>
               <div className='text-900 font-medium text-xl'>28441</div>
             </div>
             <div className='flex align-items-center justify-content-center bg-cyan-100 border-round' style={{ width: '2.5rem', height: '2.5rem' }}>
@@ -175,15 +256,15 @@ const Dashboard = () => {
         <div className='card mb-0'>
           <div className='flex justify-content-between mb-3'>
             <div>
-              <span className='block text-500 font-medium mb-3'>Comments</span>
-              <div className='text-900 font-medium text-xl'>152 Unread</div>
+              <span className='block text-500 font-medium mb-3'>Date times</span>
+              <div className='text-900 font-medium text-xl'>{time}</div>
             </div>
             <div className='flex align-items-center justify-content-center bg-purple-100 border-round' style={{ width: '2.5rem', height: '2.5rem' }}>
               <i className='pi pi-comment text-purple-500 text-xl' />
             </div>
           </div>
-          <span className='text-green-500 font-medium'>85 </span>
-          <span className='text-500'>responded</span>
+          {/* <span className='text-green-500 font-medium'>85 </span> */}
+          <span className='text-500'>Date: {date}</span>
         </div>
       </div>
 
@@ -326,11 +407,11 @@ const Dashboard = () => {
                 <i className='pi pi-dollar text-xl text-blue-500' />
               </div>
               <span className='text-900 line-height-3'>
-                Richard Jones
+                {/* Richard Jones
                 <span className='text-700'>
                   {' '}
                   has purchased a blue t-shirt for <span className='text-blue-500'>79$</span>
-                </span>
+                </span> */}
               </span>
             </li>
             <li className='flex align-items-center py-2'>

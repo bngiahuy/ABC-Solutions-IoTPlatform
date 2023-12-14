@@ -10,19 +10,7 @@ import { InputText } from 'primereact/inputtext'
 import { classNames } from 'primereact/utils'
 import supabase from 'utils/supabase-init'
 import { NextResponse } from 'next/server'
-async function supabaseSignIn(_email: string, _password: string) {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: _email,
-      password: _password
-    })
 
-    if (error) throw error
-    return data
-  } catch (err: any) {
-    alert(err.message)
-  }
-}
 const LoginPage = () => {
   const [password, setPassword] = useState('')
   const [email, setEmail] = useState('')
@@ -34,11 +22,34 @@ const LoginPage = () => {
   const containerClassName = classNames('surface-ground flex align-items-center justify-content-center min-h-screen min-w-screen overflow-hidden', { 'p-input-filled': layoutConfig.inputStyle === 'filled' })
 
   const handleSignIn = async () => {
-    try {
-      await supabaseSignIn(email, password)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    })
+    if (error) {
+      return setErrMess('Email not found or password is incorrect')
+    } else {
+      // Successful login
+      const { error: sessionError, data: sessionData } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        // Handle session error, e.g., redirect to login page
+        return router.push('/auth/login')
+      }
+
+      // Set user session in local storage
+      localStorage.setItem('userSession', JSON.stringify(sessionData))
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      // Get user_id from the session
+      const userId = user?.id || ''
+      // Set user_id in local storage (if needed)
+      localStorage.setItem('userId', userId)
+
+      // Redirect to the desired page (e.g., home page)
       return router.push('/')
-    } catch (err) {
-      return NextResponse.json({ body: err }, { status: 400 })
     }
   }
   return (
