@@ -24,9 +24,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const res = await request.json()
-
-  const { error } = await supabase.from('auth.users').insert(res.body)
-
+  const newData = res.body
+  // res = {
+  //   "body":{
+  //     "email": "",
+  //     "password": "",
+  //   }
+  // }
+  // const { error } = await supabase.from('auth.users').insert(dataToUpdate)
+  if (!newData.email || !newData.password) {
+    return NextResponse.json({ message: 'Missing email or password' }, { status: 400 })
+  }
+  const { error } = await supabase.auth.signUp(newData)
   if (error) {
     return NextResponse.json(error, { status: 400 })
   }
